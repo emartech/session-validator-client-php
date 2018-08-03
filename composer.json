@@ -24,7 +24,7 @@
         }
     },
     "require": {
-        "php": ">=5.6",
+        "php": "^5.6 || ^7.0",
         "emartech/escher": "^1.1",
         "guzzlehttp/guzzle": "^6.3",
         "psr/log": "^1.0"

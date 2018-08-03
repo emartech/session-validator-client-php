@@ -33,6 +33,7 @@ class CachedClient implements ClientInterface
         }
 
         $result = $this->client->isValid($msid);
+        $this->cache->set($msid, $result);
 
         return $result;
     }
