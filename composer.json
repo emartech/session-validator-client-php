@@ -25,9 +25,9 @@
     },
     "require": {
         "php": "^8.0",
-        "emartech/escher": "1",
-        "guzzlehttp/guzzle": "6",
-        "psr/log": "1"
+        "emartech/escher": "^3.0",
+        "guzzlehttp/guzzle": "^7.4",
+        "psr/log": "^3.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^8.4",
