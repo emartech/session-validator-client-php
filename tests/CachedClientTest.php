@@ -2,6 +2,7 @@
 
 namespace Test\SessionValidator;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use SessionValidator\Cache\CacheInterface;
 use SessionValidator\CachedClient;
@@ -9,24 +10,28 @@ use SessionValidator\ClientInterface;
 
 class CachedClientTest extends TestCase
 {
-    /** @var ClientInterface|\PHPUnit_Framework_MockObject_MockObject */
+    /** @var ClientInterface|MockObject */
     private $clientMock;
-    /** @var CacheInterface|\PHPUnit_Framework_MockObject_MockObject */
+
+    /** @var CacheInterface|MockObject */
     private $cacheMock;
 
     /** @var string */
     private $msid;
+
     /** @var string */
     private $value;
+
     /** @var array */
     private $msids;
+
     /** @var array */
     private $invalidMsids;
 
     /** @var CachedClient */
     private $client;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->clientMock = $this->createMock(ClientInterface::class);
         $this->cacheMock = $this->createMock(CacheInterface::class);

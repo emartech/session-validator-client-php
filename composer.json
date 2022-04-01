@@ -24,13 +24,13 @@
         }
     },
     "require": {
-        "php": ">=5.6",
+        "php": "^8.0",
         "emartech/escher": "1",
         "guzzlehttp/guzzle": "6",
         "psr/log": "1"
     },
     "require-dev": {
-        "phpunit/phpunit": "^5.7",
+        "phpunit/phpunit": "^8.4",
         "squizlabs/php_codesniffer": "^3.3"
     },
     "suggest": {

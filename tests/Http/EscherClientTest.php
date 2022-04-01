@@ -4,27 +4,31 @@ namespace Test\SessionValidator\Http;
 
 use Escher\Escher;
 use GuzzleHttp\ClientInterface;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use SessionValidator\Http\EscherClient;
 
 class EscherClientTest extends TestCase
 {
-    /** @var ClientInterface|\PHPUnit_Framework_MockObject_MockObject */
+    /** @var ClientInterface|MockObject */
     private $clientMock;
-    /** @var Escher|\PHPUnit_Framework_MockObject_MockObject */
+
+    /** @var Escher|MockObject */
     private $escherMock;
 
     /** @var string */
     private $escherKey;
+
     /** @var string */
     private $escherSecret;
+
     /** @var array */
     private $requestOptions;
 
     /** @var EscherClient */
     private $client;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->clientMock = $this->createMock(ClientInterface::class);
         $this->escherMock = $this->createMock(Escher::class);

@@ -4,13 +4,14 @@ namespace Test\SessionValidator;
 
 use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Psr7\Response;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use SessionValidator\Client;
 use SessionValidator\Http\EscherClient;
 
 class ClientTest extends TestCase
 {
-    /** @var EscherClient|\PHPUnit_Framework_MockObject_MockObject */
+    /** @var EscherClient|MockObject */
     private $escherClientMock;
 
     /** @var string */
@@ -19,7 +20,7 @@ class ClientTest extends TestCase
     /** @var Client */
     private $client;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->escherClientMock = $this->createMock(EscherClient::class);
 
@@ -89,7 +90,12 @@ class ClientTest extends TestCase
         $msids = ['msid1', 'msid2'];
         $body = json_encode(['msids' => $msids]);
 
-        $this->expectHttpRequest('POST', "{$this->serviceUrl}/sessions/filter", $body);
+        $this->expectHttpRequest(
+            'POST',
+            "{$this->serviceUrl}/sessions/filter",
+            $body,
+            new Response(200, [], json_encode(['msids' => ['msid1']]))
+        );
 
         $this->client->filterInvalid($msids);
     }
@@ -153,8 +159,9 @@ class ClientTest extends TestCase
             ->willThrowException(new TransferException());
     }
 
-    private function expectHttpRequest($method, $url, $body)
+    private function expectHttpRequest($method, $url, $body, $response = null)
     {
+        $responseReturned = $response ?? new Response();
         $this->escherClientMock
             ->expects($this->once())
             ->method('request')
@@ -162,6 +169,6 @@ class ClientTest extends TestCase
                 'headers' => ['Content-Type' => 'application/json'],
                 'body' => $body
             ])
-            ->willReturn(new Response());
+            ->willReturn($responseReturned);
     }
 }
