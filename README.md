@@ -54,3 +54,8 @@ Because of the APCu dependency, install extension before `composer install`
 ```bash
 printf "\n" | pecl install apcu
 ```
+
+### Local development
+```bash
+make test
+```
