@@ -48,13 +48,6 @@ $client = Client::create('https://service-url', 'escher_key', 'escher_secret');
 $client->setLogger(new Logger('name'));
 ```
 
-### Use with Heroku
-Because of the caching mechanism (`CachedClient`), add APCu to project dependencies
-
-```bash
-composer require ext-apcu
-```
-
 ### Use with CodeShip
 Because of the APCu dependency, install extension before `composer install`
 
