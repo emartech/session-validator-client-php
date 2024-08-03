@@ -1,7 +1,6 @@
-version: '3'
 services:
   app:
-    image: composer:2.3.7
+    image: composer:lts
     working_dir: /home/app/src
     volumes:
       - .:/home/app/src

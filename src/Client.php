@@ -3,37 +3,41 @@
 namespace SessionValidator;
 
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use SessionValidator\Http\EscherClient;
+use SessionValidator\Http\EscherMiddleware;
 
 class Client implements ClientInterface
 {
     const SERVICE_TIMEOUT = 0.25;
 
-    /** @var EscherClient */
-    private $client;
-    /** @var LoggerInterface */
-    private $logger;
+    private \GuzzleHttp\ClientInterface $httpClient;
+    private LoggerInterface $logger;
 
-    /** @var string */
-    private $serviceUrl;
-
-    public static function create($serviceUrl, $escherKey, $escherSecret)
+    public static function create(string $serviceUrl, ?string $escherKey = null, ?string $escherSecret = null)
     {
-        $httpClient = EscherClient::create($escherKey, $escherSecret, [
+        $config = [
             'http_errors' => false,
             'timeout' => self::SERVICE_TIMEOUT,
-        ]);
+            'base_uri' => $serviceUrl,
+        ];
+        if ($escherKey && $escherSecret) {
+            $handler = HandlerStack::create();
+            $handler->push(EscherMiddleware::create($escherKey, $escherSecret), 'escher_signer');
 
-        return new self($httpClient, $serviceUrl);
+            $config['handler'] = $handler;
+        }
+        $httpClient = new \GuzzleHttp\Client($config);
+
+        return new self($httpClient);
     }
 
-    public function __construct(EscherClient $client, $serviceUrl)
+    public function __construct(\GuzzleHttp\ClientInterface $client)
     {
-        $this->client = $client;
-        $this->serviceUrl = $serviceUrl;
+        $this->httpClient = $client;
 
         $this->logger = new NullLogger();
     }
@@ -43,9 +47,9 @@ class Client implements ClientInterface
         $this->logger = $logger;
     }
 
-    public function isValid($msid)
+    public function isValid(string $msid): bool
     {
-        $response = $this->sendRequest('GET', "{$this->serviceUrl}/sessions/$msid");
+        $response = $this->sendRequest('GET', "/sessions/$msid");
 
         if ($response) {
             return $response->getStatusCode() === 200 || $response->getStatusCode() >= 500;
@@ -54,24 +58,24 @@ class Client implements ClientInterface
         }
     }
 
-    public function filterInvalid(array $msids)
+    public function filterInvalid(array $msids): array
     {
         $body = json_encode(['msids' => $msids]);
 
-        $response = $this->sendRequest('POST', "{$this->serviceUrl}/sessions/filter", $body);
+        $response = $this->sendRequest('POST', '/sessions/filter', $body);
 
         if ($response && $response->getStatusCode() === 200) {
-            $responseData = json_decode($response->getBody(), true);
-            return $responseData['msids'];
+            $responseData = json_decode($response->getBody()->getContents(), true);
+            return $responseData;
         } else {
             return [];
         }
     }
 
-    private function sendRequest($method, $url, $body = '')
+    private function sendRequest(string $method, string $url, string $body = ''): ?Response
     {
         try {
-            $response = $this->client->request($method, $url, [
+            $response = $this->httpClient->request($method, $url, [
                 'headers' => ['Content-Type' => 'application/json'],
                 'body' => $body,
             ]);
@@ -80,11 +84,11 @@ class Client implements ClientInterface
             return $response;
         } catch (GuzzleException $e) {
             $this->logException($e);
-            return false;
+            return null;
         }
     }
 
-    private function logResult(ResponseInterface $response)
+    private function logResult(ResponseInterface $response): void
     {
         switch ($response->getStatusCode()) {
             case 200:
@@ -99,7 +103,7 @@ class Client implements ClientInterface
         }
     }
 
-    private function logException(GuzzleException $exception)
+    private function logException(GuzzleException $exception): void
     {
         $this->logger->info($exception->getMessage());
     }

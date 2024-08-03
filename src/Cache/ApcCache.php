@@ -4,20 +4,19 @@ namespace SessionValidator\Cache;
 
 class ApcCache implements CacheInterface
 {
-    /** @var int */
-    private $ttl;
+    private int $ttl;
 
-    public function __construct($ttl)
+    public function __construct(int $ttl)
     {
         $this->ttl = $ttl;
     }
 
-    public function get($key)
+    public function get(string $key): mixed
     {
         return apcu_fetch($key);
     }
 
-    public function set($key, $value)
+    public function set(string $key, mixed $value): bool
     {
         return apcu_add($key, $value, $this->ttl);
     }

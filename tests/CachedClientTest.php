@@ -2,6 +2,7 @@
 
 namespace Test\SessionValidator;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use SessionValidator\Cache\CacheInterface;
@@ -10,26 +11,19 @@ use SessionValidator\ClientInterface;
 
 class CachedClientTest extends TestCase
 {
-    /** @var ClientInterface|MockObject */
-    private $clientMock;
+    private ClientInterface|MockObject $clientMock;
 
-    /** @var CacheInterface|MockObject */
-    private $cacheMock;
+    private CacheInterface|MockObject $cacheMock;
 
-    /** @var string */
-    private $msid;
+    private string $msid;
 
-    /** @var string */
-    private $value;
+    private bool $value;
 
-    /** @var array */
-    private $msids;
+    private array $msids;
 
-    /** @var array */
-    private $invalidMsids;
+    private array $invalidMsids;
 
-    /** @var CachedClient */
-    private $client;
+    private CachedClient $client;
 
     protected function setUp(): void
     {
@@ -39,15 +33,13 @@ class CachedClientTest extends TestCase
         $this->client = new CachedClient($this->clientMock, $this->cacheMock);
 
         $this->msid = 'msid';
-        $this->value = 'value';
+        $this->value = true;
 
         $this->msids = ['msid1', 'msid2', 'msid3'];
         $this->invalidMsids = ['msid1', 'msid2'];
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function isValidShouldReturnTheCachedResultIfExists()
     {
         $this->mockCachedValue();
@@ -56,9 +48,7 @@ class CachedClientTest extends TestCase
         $this->assertEquals($this->value, $this->client->isValid($this->msid));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function isValidShouldReturnTheClientsResponseIfThereIsNoCache()
     {
         $this->mockClientValue();
@@ -66,9 +56,7 @@ class CachedClientTest extends TestCase
         $this->assertEquals($this->value, $this->client->isValid($this->msid));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function isValidShouldCacheTheClientsResponse()
     {
         $this->mockClientValue();
@@ -77,9 +65,7 @@ class CachedClientTest extends TestCase
         $this->client->isValid($this->msid);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function filterInvalidShouldReturnTheClientsResponse()
     {
         $this->mockInvalidMsids();
@@ -87,9 +73,7 @@ class CachedClientTest extends TestCase
         $this->assertEquals($this->invalidMsids, $this->client->filterInvalid($this->msids));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function filterInvalidShouldCacheTheValidMsids()
     {
         $this->mockInvalidMsids();

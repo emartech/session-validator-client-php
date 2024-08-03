@@ -3,172 +3,131 @@
 namespace Test\SessionValidator;
 
 use GuzzleHttp\Exception\TransferException;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use SessionValidator\Client;
-use SessionValidator\Http\EscherClient;
 
 class ClientTest extends TestCase
 {
-    /** @var EscherClient|MockObject */
-    private $escherClientMock;
+    private MockHandler $mockHandler;
+    private array $history;
 
-    /** @var string */
-    private $serviceUrl;
-
-    /** @var Client */
-    private $client;
+    private Client $client;
 
     protected function setUp(): void
     {
-        $this->escherClientMock = $this->createMock(EscherClient::class);
+        $this->mockHandler = new MockHandler();
+        $this->history = [];
 
-        $this->serviceUrl = 'https://service-url';
+        $handler = HandlerStack::create($this->mockHandler);
+        $handler->push(Middleware::history($this->history));
 
-        $this->client = new Client(
-            $this->escherClientMock,
-            $this->serviceUrl
-        );
+        $this->client = new Client(new \GuzzleHttp\Client([
+            'http_errors' => false,
+            'base_uri' => 'http://example.org',
+            'handler' => $handler,
+        ]));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function isValidCallsTheProperApiEndpoint()
     {
-        $this->expectHttpRequest('GET', "{$this->serviceUrl}/sessions/msid", '');
+        $this->mockHandler->append(new Response(200));
 
         $this->client->isValid('msid');
+
+        $this->assertHttpRequest('GET', '/sessions/msid', '');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function isValidReturnsTrueOnSuccessfulResponse()
     {
-        $this->mockHttpResponse(new Response());
+        $this->mockHandler->append(new Response(200));
 
         $this->assertTrue($this->client->isValid('msid'));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function isValidReturnsTrueOnServiceError()
     {
-        $this->mockHttpResponse(new Response(500));
+        $this->mockHandler->append(new Response(500));
 
         $this->assertTrue($this->client->isValid('msid'));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function isValidReturnsTrueOnHttpClientException()
     {
-        $this->mockHttpClientException();
+        $this->mockHandler->append(new TransferException());
 
         $this->assertTrue($this->client->isValid('msid'));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function isValidReturnsFalseOnNotFound()
     {
-        $this->mockHttpResponse(new Response(404));
+        $this->mockHandler->append(new Response(404));
 
         $this->assertFalse($this->client->isValid('msid'));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function filterInvalidCallsTheProperApiEndpoint()
     {
+        $this->mockHandler->append(new Response(200, ['Content-Type' => 'application/json'], '[]'));
+
         $msids = ['msid1', 'msid2'];
         $body = json_encode(['msids' => $msids]);
 
-        $this->expectHttpRequest(
-            'POST',
-            "{$this->serviceUrl}/sessions/filter",
-            $body,
-            new Response(200, [], json_encode(['msids' => ['msid1']]))
-        );
-
         $this->client->filterInvalid($msids);
+
+        $this->assertHttpRequest('POST', '/sessions/filter', $body);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function filterInvalidReturnsInvalidMsidsOnSuccess()
     {
         $invalidMsids = ['msid1'];
-        $responseBody = json_encode(['msids' => $invalidMsids]);
+        $responseBody = json_encode($invalidMsids);
 
-        $this->mockHttpResponse(new Response(200, [], $responseBody));
+        $this->mockHandler->append(new Response(200, ['Content-Type' => 'application/json'], $responseBody));
 
         $this->assertEquals($invalidMsids, $this->client->filterInvalid(['msid1', 'msid2']));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function filterInvalidReturnsEmptyArrayOnHttpClientException()
     {
-        $this->mockHttpClientException();
+        $this->mockHandler->append(new TransferException());
 
         $this->assertEquals([], $this->client->filterInvalid(['msid1', 'msid2']));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function filterInvalidReturnsEmptyArrayOnClientError()
     {
-        $this->mockHttpResponse(new Response(400));
+        $this->mockHandler->append(new Response(400));
 
         $this->assertEquals([], $this->client->filterInvalid(['msid1', 'msid2']));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function filterInvalidReturnsEmptyArrayOnServiceError()
     {
-        $this->mockHttpResponse(new Response(500));
+        $this->mockHandler->append(new Response(500));
 
         $this->assertEquals([], $this->client->filterInvalid(['msid1', 'msid2']));
     }
 
-    private function mockHttpResponse($response)
+    private function assertHttpRequest($method, $url, $body)
     {
-        $this->escherClientMock
-            ->expects($this->once())
-            ->method('request')
-            ->willReturn($response);
-    }
-
-    private function mockHttpClientException()
-    {
-        $this->escherClientMock
-            ->expects($this->once())
-            ->method('request')
-            ->willThrowException(new TransferException());
-    }
-
-    private function expectHttpRequest($method, $url, $body, $response = null)
-    {
-        $responseReturned = $response ?? new Response();
-        $this->escherClientMock
-            ->expects($this->once())
-            ->method('request')
-            ->with($method, $url, [
-                'headers' => ['Content-Type' => 'application/json'],
-                'body' => $body
-            ])
-            ->willReturn($responseReturned);
+        $this->assertEquals(1, count($this->history));
+        $this->assertEquals($method, $this->history[0]['request']->getMethod());
+        $this->assertEquals($url, $this->history[0]['request']->getUri()->getPath());
+        $this->assertEquals($body, $this->history[0]['request']->getBody()->getContents());
     }
 }

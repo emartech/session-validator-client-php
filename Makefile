@@ -1,4 +1,5 @@
-.PHONY: test
+.PHONY: install test style
 
-test:
-	docker-compose run --rm app composer test
+install: ; docker compose run --rm app composer install
+test: ; docker compose run --rm app composer test
+style: ; docker compose run --rm app composer style

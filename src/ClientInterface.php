@@ -4,15 +4,7 @@ namespace SessionValidator;
 
 interface ClientInterface
 {
-    /**
-     * @param string $msid
-     * @return bool
-     */
-    public function isValid($msid);
+    public function isValid(string $msid): bool;
 
-    /**
-     * @param array $msids
-     * @return array
-     */
-    public function filterInvalid(array $msids);
+    public function filterInvalid(array $msids): array;
 }

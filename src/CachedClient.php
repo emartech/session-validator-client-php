@@ -9,10 +9,8 @@ class CachedClient implements ClientInterface
 {
     const CACHE_TTL = 300;
 
-    /** @var Client */
-    private $client;
-    /** @var CacheInterface */
-    private $cache;
+    private ClientInterface $client;
+    private CacheInterface $cache;
 
     public static function create(ClientInterface $client)
     {
@@ -25,7 +23,7 @@ class CachedClient implements ClientInterface
         $this->cache = $cache;
     }
 
-    public function isValid($msid)
+    public function isValid(string $msid): bool
     {
         $cachedResult = $this->cache->get($msid);
         if ($cachedResult) {
@@ -38,7 +36,7 @@ class CachedClient implements ClientInterface
         return $result;
     }
 
-    public function filterInvalid(array $msids)
+    public function filterInvalid(array $msids): array
     {
         $result = $this->client->filterInvalid($msids);
 
