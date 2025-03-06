@@ -2,11 +2,13 @@
 
 namespace Test\SessionValidator;
 
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use SessionValidator\Client;
@@ -43,36 +45,26 @@ class ClientTest extends TestCase
         $this->assertHttpRequest('GET', '/sessions/msid', '');
     }
 
-    #[Test]
-    public function isValidReturnsTrueOnSuccessfulResponse()
+    public static function serviceResponses(): array
     {
-        $this->mockHandler->append(new Response(200));
-
-        $this->assertTrue($this->client->isValid('msid'));
+        return [
+            [new Response(200), true],
+            [new Response(500), true],
+            [new TransferException(), true],
+            [new Response(404), false],
+            [new Response(401), false],
+        ];
     }
 
     #[Test]
-    public function isValidReturnsTrueOnServiceError()
-    {
-        $this->mockHandler->append(new Response(500));
+    #[DataProvider('serviceResponses')]
+    public function isValidByMsidResultsAccordingToReturnedResponseStatuses(
+        Response|GuzzleException $response,
+        bool $expectedResult,
+    ) {
+        $this->mockHandler->append($response);
 
-        $this->assertTrue($this->client->isValid('msid'));
-    }
-
-    #[Test]
-    public function isValidReturnsTrueOnHttpClientException()
-    {
-        $this->mockHandler->append(new TransferException());
-
-        $this->assertTrue($this->client->isValid('msid'));
-    }
-
-    #[Test]
-    public function isValidReturnsFalseOnNotFound()
-    {
-        $this->mockHandler->append(new Response(404));
-
-        $this->assertFalse($this->client->isValid('msid'));
+        $this->assertEquals($expectedResult, $this->client->isValid('msid'));
     }
 
     #[Test]
