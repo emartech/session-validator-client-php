@@ -10,31 +10,42 @@ composer require emartech/session-validator-client
 
 ## Usage
 
-### Validating a single MSID
+### Create client
 
+Escher example:
 ```php
 $client = Client::create('https://session-validator.gservice.emarsys.net', 'escher_key', 'escher_secret');
+```
 
+mTLS example:
+```php
+$client = Client::create('http://session-validator-web.security');
+```
+
+### Check Session Validity
+
+`isValid` provides a function to validate user session using either a `msId` or a `sessionDataToken`.
+
+| Name               | Type     | Throws             | Description                                  |
+|--------------------|----------|--------------------|----------------------------------------------|
+| `msId`             | `string` | -                  | Deprecated and will be removed in the future |
+| `sessionDataToken` | `string` | `SessionDataError` |                                              |
+
+```php
 var_dump($client->isValid('msid'));
 ```
 
-### Requests without Escher
-
-For mTLS on GAP.
-
 ```php
-$client = Client::create('http://session-validator-web.security');
-
-var_dump($client->isValid('msid'));
+var_dump($client->isValid('session-data-token'));
 ```
 
 ### Batch validating multiple MSIDs
 
 Returns an array of the invalid MSIDs.
 
-```php
-$client = Client::create('https://session-validator.gservice.emarsys.net', 'escher_key', 'escher_secret');
+> Warning: The batch validation is deprecated and will be removed in the future.
 
+```php
 var_dump($client->filterInvalid(['msid1', 'msid2']));
 ```
 
@@ -44,7 +55,16 @@ var_dump($client->filterInvalid(['msid1', 'msid2']));
 $client = Client::create('https://session-validator.gservice.emarsys.net', 'escher_key', 'escher_secret');
 $cachedClient = CachedClient::create($client);
 
-var_dump($cachedClient->isValid('msid'));
+var_dump($cachedClient->isValid('msid')); // OR
+var_dump($cachedClient->isValid('session-data-token'));
+```
+
+### Fetch session data
+
+`getSessionData` provides a function to fetch user session data object using a `sessionDataToken`.
+
+```php
+const sessionData = $client->getSessionData('session-data-token');
 ```
 
 ### Logging
@@ -54,15 +74,7 @@ To enable logging, add a PSR-3 compatible logger to the client
 ```php
 use Monolog\Logger;
 
-$client = Client::create('https://session-validator.gservice.emarsys.net', 'escher_key', 'escher_secret');
 $client->setLogger(new Logger('name'));
-```
-
-### Use with CodeShip
-Because of the APCu dependency, install extension before `composer install`
-
-```bash
-printf "\n" | pecl install apcu
 ```
 
 ### Local development
