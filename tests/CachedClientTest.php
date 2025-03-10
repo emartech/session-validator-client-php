@@ -15,7 +15,7 @@ class CachedClientTest extends TestCase
 
     private CacheInterface|MockObject $cacheMock;
 
-    private string $msid;
+    private string $id;
 
     private bool $value;
 
@@ -32,7 +32,7 @@ class CachedClientTest extends TestCase
 
         $this->client = new CachedClient($this->clientMock, $this->cacheMock);
 
-        $this->msid = 'msid';
+        $this->id = 'msid';
         $this->value = true;
 
         $this->msids = ['msid1', 'msid2', 'msid3'];
@@ -45,7 +45,7 @@ class CachedClientTest extends TestCase
         $this->mockCachedValue();
         $this->expectClientIsValidNotCalled();
 
-        $this->assertEquals($this->value, $this->client->isValid($this->msid));
+        $this->assertEquals($this->value, $this->client->isValid($this->id));
     }
 
     #[Test]
@@ -53,16 +53,16 @@ class CachedClientTest extends TestCase
     {
         $this->mockClientValue();
 
-        $this->assertEquals($this->value, $this->client->isValid($this->msid));
+        $this->assertEquals($this->value, $this->client->isValid($this->id));
     }
 
     #[Test]
     public function isValidShouldCacheTheClientsResponse()
     {
         $this->mockClientValue();
-        $this->expectValueCached($this->msid, $this->value);
+        $this->expectValueCached($this->id, $this->value);
 
-        $this->client->isValid($this->msid);
+        $this->client->isValid($this->id);
     }
 
     #[Test]
@@ -87,7 +87,7 @@ class CachedClientTest extends TestCase
         $this->cacheMock
             ->expects($this->once())
             ->method('get')
-            ->with($this->msid)
+            ->with($this->id)
             ->willReturn($this->value);
     }
 
@@ -96,7 +96,7 @@ class CachedClientTest extends TestCase
         $this->clientMock
             ->expects($this->once())
             ->method('isValid')
-            ->with($this->msid)
+            ->with($this->id)
             ->willReturn($this->value);
     }
 

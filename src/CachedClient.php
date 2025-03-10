@@ -23,19 +23,27 @@ class CachedClient implements ClientInterface
         $this->cache = $cache;
     }
 
-    public function isValid(string $msid): bool
+    public function isValid(string $id): bool
     {
-        $cachedResult = $this->cache->get($msid);
+        $cachedResult = $this->cache->get($id);
         if ($cachedResult) {
             return $cachedResult;
         }
 
-        $result = $this->client->isValid($msid);
-        $this->cache->set($msid, $result);
+        $result = $this->client->isValid($id);
+        $this->cache->set($id, $result);
 
         return $result;
     }
 
+    public function getSessionData(string $sessionDataToken): array
+    {
+        return $this->client->getSessionData($sessionDataToken);
+    }
+
+    /**
+     * @deprecated - this functionality will be removed in the future
+     */
     public function filterInvalid(array $msids): array
     {
         $result = $this->client->filterInvalid($msids);
