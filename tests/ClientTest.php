@@ -12,6 +12,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use SessionValidator\Client;
+use SessionValidator\SessionDataException;
 
 class ClientTest extends TestCase
 {
@@ -36,35 +37,96 @@ class ClientTest extends TestCase
     }
 
     #[Test]
-    public function isValidCallsTheProperApiEndpoint()
+    public function isValidWithMsidCallsTheProperApiEndpoint()
     {
         $this->mockHandler->append(new Response(200));
 
-        $this->client->isValid('msid');
+        $this->client->isValid('example_abcdef12345678.12345678');
 
-        $this->assertHttpRequest('GET', '/sessions/msid', '');
+        $this->assertHttpRequest('GET', '/sessions/example_abcdef12345678.12345678', '');
     }
 
-    public static function serviceResponses(): array
+    public static function serviceResponsesByMSid(): array
     {
         return [
             [new Response(200), true],
             [new Response(500), true],
-            [new TransferException(), true],
-            [new Response(404), false],
             [new Response(401), false],
+            [new Response(404), false],
+            [new TransferException(), true],
         ];
     }
 
     #[Test]
-    #[DataProvider('serviceResponses')]
+    #[DataProvider('serviceResponsesByMSid')]
     public function isValidByMsidResultsAccordingToReturnedResponseStatuses(
         Response|GuzzleException $response,
         bool $expectedResult,
     ) {
         $this->mockHandler->append($response);
 
-        $this->assertEquals($expectedResult, $this->client->isValid('msid'));
+        $this->assertEquals($expectedResult, $this->client->isValid('example_abcdef12345678.12345678'));
+    }
+
+    #[Test]
+    public function isValidWithSessionDataTokenCallsTheProperApiEndpoint()
+    {
+        $this->mockHandler->append(new Response(200));
+
+        $this->client->isValid('session-data-token');
+
+        $this->assertHttpRequestWithAuthorizationBearerHeader('HEAD', '/sessions', 'session-data-token');
+    }
+
+    public static function serviceResponsesBySessionDataToken(): array
+    {
+        return [
+            [new Response(200), true],
+            [new Response(401), false],
+            [new Response(404), false],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('serviceResponsesBySessionDataToken')]
+    public function isValidBySessionDataTokenResultsAccordingToReturnedResponseStatuses(
+        Response|GuzzleException $response,
+        bool $expectedResult,
+    ) {
+        $this->mockHandler->append($response);
+
+        $this->assertEquals($expectedResult, $this->client->isValid('session-data-token'));
+    }
+
+    public static function raisedExceptions(): array
+    {
+        return [
+            [
+                new Response(500),
+                SessionDataException::class,
+                'Service unreachable'
+            ],
+            [
+                new TransferException(),
+                SessionDataException::class,
+                'Service unreachable'
+            ]
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('raisedExceptions')]
+    public function isValidBySessionDataTokenResultsExceptionsAccordingToReturnedResponseStatuses(
+        Response|GuzzleException $response,
+        string $expectedException,
+        string $expectedMessage,
+    ) {
+        $this->mockHandler->append($response);
+
+        $this->expectException($expectedException);
+        $this->expectExceptionMessage($expectedMessage);
+
+        $this->client->isValid('session-data-token');
     }
 
     #[Test]
@@ -121,5 +183,13 @@ class ClientTest extends TestCase
         $this->assertEquals($method, $this->history[0]['request']->getMethod());
         $this->assertEquals($url, $this->history[0]['request']->getUri()->getPath());
         $this->assertEquals($body, $this->history[0]['request']->getBody()->getContents());
+    }
+
+    private function assertHttpRequestWithAuthorizationBearerHeader($method, $url, $token)
+    {
+        $this->assertEquals(1, count($this->history));
+        $this->assertEquals($method, $this->history[0]['request']->getMethod());
+        $this->assertEquals($url, $this->history[0]['request']->getUri()->getPath());
+        $this->assertEquals('Bearer ' . $token, $this->history[0]['request']->getHeader('Authorization')[0]);
     }
 }
