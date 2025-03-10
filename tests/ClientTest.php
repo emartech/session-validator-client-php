@@ -13,6 +13,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use SessionValidator\Client;
 use SessionValidator\SessionDataException;
+use SessionValidator\SessionDataNotFoundException;
 
 class ClientTest extends TestCase
 {
@@ -125,6 +126,49 @@ class ClientTest extends TestCase
 
         $this->expectException($expectedException);
         $this->expectExceptionMessage($expectedMessage);
+
+        $this->client->isValid('session-data-token');
+    }
+
+    #[Test]
+    public function getSessionDataReturnsSessionData()
+    {
+        $this->mockHandler->append(new Response(200, body: '{ "some": "data" }'));
+
+        $response = $this->client->getSessionData('session-data-token');
+
+        $this->assertHttpRequestWithAuthorizationBearerHeader('GET', '/sessions', 'session-data-token');
+        $this->assertEquals(['some' => 'data'], $response);
+    }
+
+    #[Test]
+    public function getSessionDataRaisesSessionDataNotFoundExceptionIfSessionDataIsNotFound()
+    {
+        $this->mockHandler->append(new Response(401));
+
+        $this->expectException(SessionDataNotFoundException::class);
+
+        $this->client->getSessionData('session-data-token');
+    }
+
+    #[Test]
+    public function getSessionDataRaisesSessionDataExceptionIf500Returned()
+    {
+        $this->mockHandler->append(new Response(500));
+
+        $this->expectException(SessionDataException::class);
+        $this->expectExceptionMessage('Service unreachable');
+
+        $this->client->getSessionData('session-data-token');
+    }
+
+    #[Test]
+    public function getSessionDataRaisesSessionDataExceptionIfSomethingGoesWrong()
+    {
+        $this->mockHandler->append(new TransferException());
+
+        $this->expectException(SessionDataException::class);
+        $this->expectExceptionMessage('Service unreachable');
 
         $this->client->isValid('session-data-token');
     }

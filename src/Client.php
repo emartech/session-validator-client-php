@@ -61,6 +61,22 @@ class Client implements ClientInterface
     }
 
     /**
+     * @throws SessionDataException
+     * @throws SessionDataNotFoundException
+     */
+    public function getSessionData(string $sessionDataToken): array
+    {
+        $response = $this->sendSessionDataRequest('GET', '/sessions', $sessionDataToken);
+        $statusCode = $response->getStatusCode();
+
+        return match (true) {
+            $statusCode === 200 => json_decode($response->getBody()->getContents(), true),
+            $statusCode >= 400 && $statusCode < 500 => throw new SessionDataNotFoundException(),
+            $statusCode >= 500 => throw new SessionDataException('Service unreachable'),
+        };
+    }
+
+    /**
      * @deprecated - this functionality will be removed in the future
      */
     public function filterInvalid(array $msids): array
