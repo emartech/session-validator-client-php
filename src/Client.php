@@ -15,6 +15,7 @@ class Client implements ClientInterface
 {
     const MSID_PATTERN = '/^[a-z0-9._]+_[0-9a-f]{14}\.[0-9]{8}$/';
     const SERVICE_TIMEOUT = 0.25;
+    const EXCEPTION_MESSAGE = 'Service unreachable';
 
     private \GuzzleHttp\ClientInterface $httpClient;
     private LoggerInterface $logger;
@@ -72,7 +73,7 @@ class Client implements ClientInterface
         return match (true) {
             $statusCode === 200 => json_decode($response->getBody()->getContents(), true),
             $statusCode >= 400 && $statusCode < 500 => throw new SessionDataNotFoundException(),
-            $statusCode >= 500 => throw new SessionDataException('Service unreachable'),
+            $statusCode >= 500 => throw new SessionDataException(self::EXCEPTION_MESSAGE),
         };
     }
 
@@ -115,7 +116,7 @@ class Client implements ClientInterface
         return match (true) {
             $statusCode === 200 => true,
             $statusCode >= 400 && $statusCode < 500 => false,
-            $statusCode >= 500 => throw new SessionDataException('Service unreachable'),
+            $statusCode >= 500 => throw new SessionDataException(self::EXCEPTION_MESSAGE),
         };
     }
 
@@ -152,7 +153,7 @@ class Client implements ClientInterface
             return $response;
         } catch (Exception $e) {
             $this->logException($e);
-            throw new SessionDataException('Service unreachable', previous: $e);
+            throw new SessionDataException(self::EXCEPTION_MESSAGE, previous: $e);
         }
     }
 
